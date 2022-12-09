@@ -1,0 +1,1 @@
+={"data": "{{$node["HTTP Request"].json["data"]}}", "meta": "{{$node["HTTP Request"].json["meta"]}}"}

@@ -1,0 +1,181 @@
+{
+    "connection": {
+        "55486eba-5b91-40f0-b9c3-560f2aa4a9fb": [
+            {
+                "id": "3b859232-4c54-4c17-a522-10e18953a21f",
+                "name": "convert"
+            },
+            {
+                "id": "a5601bcd-fe80-4c30-809b-4129676b0e87",
+                "name": "logAllWhenNoResume"
+            }
+        ],
+        "Start": [
+            {
+                "id": "b005ee63-ca8e-49e8-ab53-a27834725dbf",
+                "name": "getResume"
+            }
+        ],
+        "b005ee63-ca8e-49e8-ab53-a27834725dbf": [
+            {
+                "id": "55486eba-5b91-40f0-b9c3-560f2aa4a9fb",
+                "name": "IF"
+            }
+        ],
+        "3b859232-4c54-4c17-a522-10e18953a21f": [
+            {
+                "id": "08e6e023-11b9-4a7b-95f9-703da1fb5852",
+                "name": "mergeResumeAndConverted"
+            }
+        ],
+        "08e6e023-11b9-4a7b-95f9-703da1fb5852": [
+            {
+                "id": "e7d0e74e-1cb3-443d-9ae4-eb25e7c41f55",
+                "name": "logAll"
+            },
+            {
+                "id": "a38f852a-d2b4-465e-8750-7d7bfd754a59",
+                "name": "saveResume"
+            }
+        ]
+    },
+    "tasks": [
+        {
+            "name": "Start",
+            "type": "n8n-nodes-base.start",
+            "payload": {
+                "parameters": {
+                    "retryOnFail": false,
+                    "maxTries": 0,
+                    "waitBetweenTries": 0,
+                    "continueOnFail": false
+                }
+            },
+            "id": "9d7562ad-b1c9-4513-8fb2-ea675541cae6"
+        },
+        {
+            "name": "getResume",
+            "type": "n8n-nodes-base.httpRequest",
+            "payload": {
+                "parameters": {
+                    "url": "=https://transmitter.nadileaf.com/v2/entity/{{$node[\"Start\"].json[\"tenant\"]}}/{{$node[\"Start\"].json[\"entitType\"]}}/{{$node[\"Start\"].json[\"entityId\"]}}",
+                    "options": {},
+                    "retryOnFail": false,
+                    "maxTries": 0,
+                    "waitBetweenTries": 0,
+                    "continueOnFail": true
+                }
+            },
+            "id": "b005ee63-ca8e-49e8-ab53-a27834725dbf"
+        },
+        {
+            "name": "IF",
+            "type": "n8n-nodes-base.if",
+            "payload": {
+                "parameters": {
+                    "conditions": {
+                        "number": [
+                            {
+                                "value1": "={{$node[\"getResume\"].kwargs[\"status\"]}}",
+                                "operation": "equal",
+                                "value2": 200
+                            }
+                        ]
+                    },
+                    "retryOnFail": false,
+                    "maxTries": 0,
+                    "waitBetweenTries": 0,
+                    "continueOnFail": false
+                }
+            },
+            "id": "55486eba-5b91-40f0-b9c3-560f2aa4a9fb"
+        },
+        {
+            "name": "convert",
+            "type": "n8n-nodes-base.httpRequest",
+            "payload": {
+                "parameters": {
+                    "requestMethod": "POST",
+                    "url": "http://localhost:11000/convert",
+                    "jsonParameters": true,
+                    "options": {},
+                    "bodyParametersJson": "={\"data\": {\"entityId\": \"{{$node[\"Start\"].json[\"entityId\"]}}\", \"fields\": [{\"key\": \"phone\", \"value\": \"{{$node[\"getResume\"].json[\"data\"][\"standardFields\"][\"contactInfo\"][\"mobilePhoneNumber\"]}}\"}]}}",
+                    "queryParametersJson": "={\"tenant\": \"{{$node[\"Start\"].json[\"tenant\"]}}\"}",
+                    "retryOnFail": false,
+                    "maxTries": 0,
+                    "waitBetweenTries": 0,
+                    "continueOnFail": false
+                }
+            },
+            "id": "3b859232-4c54-4c17-a522-10e18953a21f"
+        },
+        {
+            "name": "logAll",
+            "type": "n8n-nodes-base.httpRequest",
+            "payload": {
+                "parameters": {
+                    "requestMethod": "POST",
+                    "url": "http://localhost:11000/log",
+                    "jsonParameters": true,
+                    "options": {},
+                    "bodyParametersJson": "={\"data\": {{$node[\"mergeResumeAndConverted\"].json}}}",
+                    "retryOnFail": false,
+                    "maxTries": 0,
+                    "waitBetweenTries": 0,
+                    "continueOnFail": false
+                }
+            },
+            "id": "e7d0e74e-1cb3-443d-9ae4-eb25e7c41f55"
+        },
+        {
+            "name": "mergeResumeAndConverted",
+            "type": "n8n-nodes-base.pythonFunction",
+            "payload": {
+                "parameters": {
+                    "path": "/Users/zyh/mortal/src/main/data/functionCodes/08e6e023-11b9-4a7b-95f9-703da1fb5852.py",
+                    "retryOnFail": false,
+                    "maxTries": 0,
+                    "waitBetweenTries": 0,
+                    "continueOnFail": false
+                }
+            },
+            "id": "08e6e023-11b9-4a7b-95f9-703da1fb5852"
+        },
+        {
+            "name": "saveResume",
+            "type": "n8n-nodes-base.httpRequest",
+            "payload": {
+                "parameters": {
+                    "requestMethod": "PUT",
+                    "url": "http://localhost:11000/save",
+                    "jsonParameters": true,
+                    "options": {},
+                    "bodyParametersJson": "={\"data\": {{$node[\"mergeResumeAndConverted\"].json}}}",
+                    "retryOnFail": false,
+                    "maxTries": 0,
+                    "waitBetweenTries": 0,
+                    "continueOnFail": false
+                }
+            },
+            "id": "a38f852a-d2b4-465e-8750-7d7bfd754a59"
+        },
+        {
+            "name": "logAllWhenNoResume",
+            "type": "n8n-nodes-base.httpRequest",
+            "payload": {
+                "parameters": {
+                    "requestMethod": "POST",
+                    "url": "http://localhost:11000/log",
+                    "jsonParameters": true,
+                    "options": {},
+                    "bodyParametersJson": "={\"data\": {{$node[\"mergeResumeAndConverted\"].json}}}",
+                    "retryOnFail": false,
+                    "maxTries": 0,
+                    "waitBetweenTries": 0,
+                    "continueOnFail": false
+                }
+            },
+            "id": "a5601bcd-fe80-4c30-809b-4129676b0e87"
+        }
+    ]
+}

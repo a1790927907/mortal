@@ -1,0 +1,846 @@
+{
+  "id": 3,
+  "name": "test",
+  "active": false,
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "9d7562ad-b1c9-4513-8fb2-ea675541cae6",
+      "name": "Start",
+      "type": "n8n-nodes-base.start",
+      "typeVersion": 1,
+      "position": [
+        -740,
+        660
+      ]
+    },
+    {
+      "parameters": {
+        "content": "## 👇 Get started faster \nLightning tour of the key concepts [3 min] \n\n[![n8n quickstart video](/static/quickstart_thumbnail.png#full-width)](https://www.youtube.com/watch?v=RpjQTGKm-ok)",
+        "height": 300,
+        "width": 380
+      },
+      "id": "99881ec6-33c7-4bb7-8377-ae4e23d027ea",
+      "name": "_QUICKSTART_NOTE_",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -260,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "url": "=https://transmitter.nadileaf.com/v2/entity/{{$node[\"Start\"].json[\"tenant\"]}}/{{$node[\"Start\"].json[\"entitType\"]}}/{{$node[\"Start\"].json[\"entityId\"]}}",
+        "options": {}
+      },
+      "id": "b005ee63-ca8e-49e8-ab53-a27834725dbf",
+      "name": "getResume",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 2,
+      "position": [
+        -480,
+        480
+      ],
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "number": [
+            {
+              "value1": "={{$node[\"getResume\"].kwargs[\"status\"]}}",
+              "operation": "equal",
+              "value2": 200
+            }
+          ]
+        }
+      },
+      "id": "55486eba-5b91-40f0-b9c3-560f2aa4a9fb",
+      "name": "IF",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [
+        -260,
+        740
+      ]
+    },
+    {
+      "parameters": {
+        "requestMethod": "POST",
+        "url": "http://localhost:11000/convert",
+        "jsonParameters": true,
+        "options": {},
+        "bodyParametersJson": "={\"data\": {\"entityId\": \"{{$node[\"Start\"].json[\"entityId\"]}}\", \"fields\": [{\"key\": \"phone\", \"value\": \"{{$node[\"getResume\"].json[\"data\"][\"standardFields\"][\"contactInfo\"][\"mobilePhoneNumber\"]}}\"}]}}",
+        "queryParametersJson": "={\"tenant\": \"{{$node[\"Start\"].json[\"tenant\"]}}\"}"
+      },
+      "id": "3b859232-4c54-4c17-a522-10e18953a21f",
+      "name": "convert",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 2,
+      "position": [
+        40,
+        520
+      ]
+    },
+    {
+      "parameters": {
+        "requestMethod": "POST",
+        "url": "http://localhost:11000/log",
+        "jsonParameters": true,
+        "options": {},
+        "bodyParametersJson": "={\"data\": {{$node[\"mergeResumeAndConverted\"].json}}}"
+      },
+      "id": "e7d0e74e-1cb3-443d-9ae4-eb25e7c41f55",
+      "name": "logAll",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 2,
+      "position": [
+        760,
+        500
+      ]
+    },
+    {
+      "parameters": {
+        "functionCode": "def process(items: dict, **kwargs):\n    resume, converted = items[\"getResume\"], items[\"convert\"]\n    return {**resume, **converted}\n"
+      },
+      "id": "08e6e023-11b9-4a7b-95f9-703da1fb5852",
+      "name": "mergeResumeAndConverted",
+      "type": "n8n-nodes-base.pythonFunction",
+      "typeVersion": 1,
+      "position": [
+        260,
+        820
+      ]
+    },
+    {
+      "parameters": {
+        "requestMethod": "PUT",
+        "url": "http://localhost:11000/save",
+        "jsonParameters": true,
+        "options": {},
+        "bodyParametersJson": "={\"data\": {{$node[\"mergeResumeAndConverted\"].json}}}"
+      },
+      "id": "a38f852a-d2b4-465e-8750-7d7bfd754a59",
+      "name": "saveResume",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 2,
+      "position": [
+        740,
+        960
+      ]
+    },
+    {
+      "parameters": {
+        "requestMethod": "POST",
+        "url": "http://localhost:11000/log",
+        "jsonParameters": true,
+        "options": {},
+        "bodyParametersJson": "={\"data\": {{$node[\"mergeResumeAndConverted\"].json}}}"
+      },
+      "id": "a5601bcd-fe80-4c30-809b-4129676b0e87",
+      "name": "logAllWhenNoResume",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 2,
+      "position": [
+        -40,
+        980
+      ]
+    }
+  ],
+  "connections": {
+    "IF": {
+      "main": [
+        [
+          {
+            "node": "convert",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "logAllWhenNoResume",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Start": {
+      "main": [
+        [
+          {
+            "node": "getResume",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "getResume": {
+      "main": [
+        [
+          {
+            "node": "IF",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "convert": {
+      "main": [
+        [
+          {
+            "node": "mergeResumeAndConverted",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "mergeResumeAndConverted": {
+      "main": [
+        [
+          {
+            "node": "logAll",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "saveResume",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "createdAt": "2022-11-03T10:14:34.321Z",
+  "updatedAt": "2022-11-07T09:40:56.188Z",
+  "settings": {},
+  "staticData": null,
+  "pinData": {
+    "Start": [
+      {
+        "entityId": "test1222",
+        "tenant": "mesoor-98",
+        "entitType": "Resume",
+        "schema": "https://transmitter-schema.nadileaf.com/v2/publish/entity/standard/Resume/version/v_2.0.167#/properties/data"
+      }
+    ],
+    "getResume": [
+      {
+        "meta": {
+          "createdAt": "2022-10-18T04:13:28.711720981Z",
+          "createdBy": "test",
+          "openId": "test1222",
+          "updatedAt": "2022-11-02T12:47:28.677172602Z",
+          "updatedBy": "test",
+          "deleteAt": null,
+          "source": "test",
+          "status": 0,
+          "standardSchema": "/v2/publish/entity/standard/Resume/version/v_2.0.167",
+          "customSchema": null
+        },
+        "data": {
+          "rawData": {
+            "content": {
+              "contactInfo": {
+                "location": "上海",
+                "phoneNumbers": [
+                  "1761218550"
+                ],
+                "locationNormalized": {
+                  "city": "上海市",
+                  "country": "中国",
+                  "code": "156310000"
+                }
+              },
+              "interns": [],
+              "meta": {
+                "openId": "e86e6be3775640ed6272eb83779bde7c",
+                "entityCreatedAt": "2022-09-21T13:06:43.362288109Z",
+                "createdSystemName": "麦穗",
+                "stageUpdatedAt": "2022-09-29T13:07:56.469357258Z",
+                "createdSystemCode": "mesoor",
+                "createdBy": "robot",
+                "submitChannelType": "邮件收录",
+                "updatedBy": "robot",
+                "stageCreatedAt": "2022-09-21T13:06:43.362288109Z",
+                "detectedSourceUrl": "https://sctrack.sendcloud.net/track/click/eyJuZXRlYXNlIjogImZhbHNlIiwgIm1haWxsaXN0X2lkIjogMCwgInRhc2tfaWQiOiAiIiwgImVtYWlsX2lkIjogIjE2NjM1ODMzNzIyNTFfMzUyNTNfNzQzMDlfMzcyMS5zYy0xMF85XzUxXzEyMi1pbmJvdW5kMCRlbGl6YXdhbmcwNUBtZXNvb3IuY29tIiwgInNpZ24iOiAiOTI1NTUwODU3OTU2ODZiY2RhZDIxOGY4MzI4YzdlNjAiLCAidXNlcl9oZWFkZXJzIjoge30sICJsYWJlbCI6IDAsICJ0cmFja19kb21haW4iOiAic2N0cmFjay5zZW5kY2xvdWQubmV0IiwgInJlYWxfdHlwZSI6ICIiLCAibGluayI6ICJodHRwcyUzQS8vbS56aGlwaW4uY29tL3dlYi9jb21tb24vbWFpbC9yZXN1bWUtcGFnZS5odG1sJTNGdXVpZCUzRGIwODMwOTA1OGY4MTc3MDExbkYtMDltNEVWcFR4SkczVmY2ZVJlYXJsdXJWTmhaaDNxNWFrcnclN0UlMjZzaWQlM0RtYWlsX3Jlc3VtZV9uaXUiLCAib3V0X2lwIjogIjExNy41MC42Mi44MyIsICJjb250ZW50X3R5cGUiOiAzLCAidXNlcl9pZCI6IDM1MjUzLCAib3ZlcnNlYXMiOiAiZmFsc2UiLCAiY2F0ZWdvcnlfaWQiOiA4ODY0OH0=.html",
+                "entityUpdatedAt": "2022-09-29T13:07:56.469357258Z",
+                "submitChannelName": "邮件收录"
+              },
+              "languages": [],
+              "certificatesLinked": [
+                {
+                  "entityId": "75060010-b5b9-11ea-a8ce-6c96cfddf075",
+                  "entityName": "运维工程师"
+                }
+              ],
+              "certificates": [
+                {
+                  "name": "运维工程师"
+                }
+              ],
+              "otherInfo": {
+                "selfEvaluation": "个人优势熟练Linux操作系统熟练shell,并对python有一定了解;熟悉git/dvc进行模型、数据集和代码版本控制,gitlab代码托管平台,Jenkins搭建ci/cd部署微服务到容器化平台。熟悉监控系统和日志平台,zabbix、prometheus、elk/efk;熟悉存储集群,gfs、hdfs。熟悉k8s、docker系统安装和相关配置",
+                "workYearNormalized": {
+                  "gte": 4,
+                  "lte": 4
+                }
+              },
+              "currentJobStatus": {},
+              "works": [
+                {
+                  "jobNamesLinked": [
+                    {
+                      "entityId": "5ce745d2-99e2-11ea-bff0-ac1f6b24219e",
+                      "entityName": "开发运维工程师"
+                    }
+                  ],
+                  "description": "1.负责公司开发、测试、生产环境的稳定(机房、阿里云、华为云)\n              2. 负责公司生产环境发布流程和部署环境的变更(传统-k8s)\n                  3. 负责公司各环境 cicd 流程稳定(gitlab-ci、jenkins 、云效)\n             4. 负责公司私有化部署的方案制定和自动化流程实施,以及客户后续售后流程的跟踪",
+                  "companyName": "上海纽酷信息科技有限公司",
+                  "jobNames": [
+                    "运维开发工程师"
+                  ],
+                  "jobCategoriesAnalyzed": [
+                    [
+                      "互联网"
+                    ]
+                  ],
+                  "dateRangeNormalized": {
+                    "end": {
+                      "day": 1,
+                      "iso": "2022-07-01T00:00:00",
+                      "year": 2022,
+                      "month": 7
+                    },
+                    "start": {
+                      "day": 1,
+                      "iso": "2022-02-01T00:00:00",
+                      "year": 2022,
+                      "month": 2
+                    },
+                    "untilNow": false
+                  },
+                  "companyNameLinked": {
+                    "entityId": "4f384316-4d70-11ea-9f0a-ac1f6b24219e",
+                    "entityName": "上海纽酷信息科技有限公司"
+                  }
+                },
+                {
+                  "jobNamesLinked": [
+                    {
+                      "entityId": "5c6f6447-99e2-11ea-bff0-ac1f6b24219e",
+                      "entityName": "运维工程师"
+                    }
+                  ],
+                  "description": "职责 \n               1. 负责公司 devops 平台的搭建,流水线脚本。\n                 2. 负责维护项目的 dev、sit、uat 环境的 kubernetes 集群,并负责服务上线。\n                3. 负责维护 git 仓库的代码分支(sit、trunk),并进行权限管理。\n             4. 负责对接开发,完成行方变更(如配置中心变更、服务发现方案)。",
+                  "companyName": "艾融科技有限公司",
+                  "jobNames": [
+                    "运维工程师"
+                  ],
+                  "jobCategoriesAnalyzed": [
+                    [
+                      "互联网"
+                    ]
+                  ],
+                  "dateRangeNormalized": {
+                    "end": {
+                      "day": 1,
+                      "iso": "2021-12-01T00:00:00",
+                      "year": 2021,
+                      "month": 12
+                    },
+                    "start": {
+                      "day": 1,
+                      "iso": "2021-06-01T00:00:00",
+                      "year": 2021,
+                      "month": 6
+                    },
+                    "untilNow": false
+                  },
+                  "companyNameLinked": {
+                    "entityId": "e23c1318-71d5-11ea-a27e-aef4946b5e85",
+                    "entityName": "深圳艾融科技有限公司"
+                  }
+                },
+                {
+                  "jobNamesLinked": [
+                    {
+                      "entityId": "5c6f6447-99e2-11ea-bff0-ac1f6b24219e",
+                      "entityName": "运维工程师"
+                    }
+                  ],
+                  "description": "职责: \n              1、 负责部署客户现场的 AI 平台,并进行日常问题解决。\n            2、 负责客户方定制化的容器化服务需求,从方案设计到部署,并撰写使用手册及部署手册。\n            3、 使用爬虫去测试研发的功能是否完善,对比爬取字段结果以及实际结果。",
+                  "companyName": "上海百度研发中心",
+                  "jobNames": [
+                    "运维工程师"
+                  ],
+                  "jobCategoriesAnalyzed": [
+                    [
+                      "互联网"
+                    ]
+                  ],
+                  "dateRangeNormalized": {
+                    "end": {
+                      "day": 1,
+                      "iso": "2021-06-01T00:00:00",
+                      "year": 2021,
+                      "month": 6
+                    },
+                    "start": {
+                      "day": 1,
+                      "iso": "2020-12-01T00:00:00",
+                      "year": 2020,
+                      "month": 12
+                    },
+                    "untilNow": false
+                  }
+                },
+                {
+                  "jobNamesLinked": [
+                    {
+                      "entityId": "5c6f6447-99e2-11ea-bff0-ac1f6b24219e",
+                      "entityName": "运维工程师"
+                    }
+                  ],
+                  "description": "职责: \n             1、 参与公司产品的运行维护,管理公司负责的 web 和数据库服务器;\n             2、 负责数据库的备份和定时清理,监控服务器运行状态。\n             3、 负责部署以及可用性和服务质量保障,解决客户反馈的问题。",
+                  "companyName": "杭州创新网络科技有限公司",
+                  "jobNames": [
+                    "运维工程师"
+                  ],
+                  "jobCategoriesAnalyzed": [
+                    [
+                      "互联网"
+                    ]
+                  ],
+                  "dateRangeNormalized": {
+                    "end": {
+                      "day": 1,
+                      "iso": "2020-06-01T00:00:00",
+                      "year": 2020,
+                      "month": 6
+                    },
+                    "start": {
+                      "day": 1,
+                      "iso": "2018-07-01T00:00:00",
+                      "year": 2018,
+                      "month": 7
+                    },
+                    "untilNow": false
+                  },
+                  "companyNameLinked": {
+                    "entityId": "bec276d2-7083-11ea-a27e-aef4946b5e85",
+                    "entityName": "创新网络科技有限公司"
+                  }
+                }
+              ],
+              "educations": [
+                {
+                  "schoolNameLinked": {
+                    "entityId": "654384fa-4d70-11ea-9f0a-ac1f6b24219e",
+                    "entityName": "安徽信息工程学院"
+                  },
+                  "schoolName": "安徽信息工程学院",
+                  "majorNamesLinked": [
+                    {
+                      "entityId": "9c1d1e62-d6e9-11ea-8c07-6c96cfddf075",
+                      "entityName": "计算机科学与技术"
+                    }
+                  ],
+                  "isPrimaryAnalyzed": true,
+                  "isFullTimeAnalyzed": false,
+                  "majorNames": [
+                    "计算机科学与技术"
+                  ],
+                  "dateRangeNormalized": {
+                    "end": {
+                      "day": 1,
+                      "iso": "2018-01-01T00:00:00",
+                      "year": 2018,
+                      "month": 1
+                    },
+                    "start": {
+                      "day": 1,
+                      "iso": "2014-01-01T00:00:00",
+                      "year": 2014,
+                      "month": 1
+                    },
+                    "untilNow": false
+                  },
+                  "degreeName": "本科",
+                  "schoolTagsAnalyzed": [],
+                  "isHighestAnalyzed": true,
+                  "degreeNameNormalized": {
+                    "name": "本科"
+                  }
+                }
+              ],
+              "humanInfo": {
+                "dateOfStartWorkAnalyzed": {
+                  "day": 1,
+                  "iso": "2018-07-01T00:00:00",
+                  "year": 2018,
+                  "month": 7
+                },
+                "name": "李洪恩",
+                "isJuniorCollegeAnalyzed": true,
+                "genderNameNormalized": "男",
+                "isGraduatesAnalyzed": true,
+                "genderName": "男",
+                "yearsOfWorkAnalyzed": 3,
+                "dateOfBirthNormalized": {
+                  "day": 1,
+                  "iso": "1996-12-01T00:00:00",
+                  "year": 1996,
+                  "month": 12
+                }
+              },
+              "expectations": [
+                {
+                  "jobNamesLinked": [
+                    {
+                      "entityId": "5c6f6447-99e2-11ea-bff0-ac1f6b24219e",
+                      "entityName": "运维工程师"
+                    }
+                  ],
+                  "jobNames": [
+                    "运维工程师"
+                  ],
+                  "salaryRangeNormalized": {
+                    "gte": 27000,
+                    "lte": 30000
+                  }
+                }
+              ],
+              "projects": [
+                {
+                  "name": "厦门国际银行项目容器化改造",
+                  "description": "公司要求将传统环境改造为 k8s集群,并完成服务迭代,直到项目上线。\n              项目职责: 负责 devops 平台搭建、分支管理、不同环境搭建部署及维护\n               项目价值: 完成 ci、cd 自动化。业务快速迭代,配置热加载(nacos )等需求。",
+                  "workIndexAnalyzed": 2,
+                  "dateRangeNormalized": {
+                    "end": {
+                      "day": 1,
+                      "iso": "2021-12-01T00:00:00",
+                      "year": 2021,
+                      "month": 12
+                    },
+                    "start": {
+                      "day": 1,
+                      "iso": "2021-06-01T00:00:00",
+                      "year": 2021,
+                      "month": 6
+                    },
+                    "untilNow": false
+                  }
+                },
+                {
+                  "name": "k8s部署",
+                  "description": "1、 项目描述: 随着客户公司大型项目增多,项目服务数量增大,公司需要搭建微服务平台来完成公司业务。考虑到k8s群集部\n            署\n             2、 微服务的种种优势,于是决定搭建k8s群集,并将公司项目部署到k8s平台上。\n              3、 项目职责:主要负责k8s环境搭建。\n            4、 项目价值:节约资源成本,提高运维效率,实现了新功能快速上线目的。",
+                  "workIndexAnalyzed": 3,
+                  "companyName": "河南海泰信息技术有限公司",
+                  "dateRangeNormalized": {
+                    "end": {
+                      "day": 1,
+                      "iso": "2019-11-01T00:00:00",
+                      "year": 2019,
+                      "month": 11
+                    },
+                    "start": {
+                      "day": 1,
+                      "iso": "2019-11-01T00:00:00",
+                      "year": 2019,
+                      "month": 11
+                    },
+                    "untilNow": false
+                  },
+                  "companyNameLinked": {
+                    "entityId": "e8c507b2-7d7e-11ea-bbba-d62450cce96d",
+                    "entityName": "河南海泰信息技术有限公司"
+                  }
+                },
+                {
+                  "description": "1、 公司要求部署一个 web 群集,考虑到 lvs+keepalived 的天然配合性,以及 lvs的\n                 2、 强大调度能力,决定让 lvs和 keepalived 组成主备调度后方 nginx,nginx 处理静\n              3、 态网站的请求并通过调度模块将动态网站的请求交给数台 tomcat 处理。并在\n                   4、 tomcat 之间通过 reids 缓存服务,实现 tomcat的 session 共享。\n              5、 项目职责: 负责集群环境及服务的部署\n              6、 项目价值: 实现了公司 web 节点负载,以及调度器的高可用,网页请求的动静分离,对 tomcat\n             7、 服务器内存资源的优化。",
+                  "workIndexAnalyzed": 3,
+                  "dateRangeNormalized": {
+                    "end": {
+                      "day": 1,
+                      "iso": "2019-09-01T00:00:00",
+                      "year": 2019,
+                      "month": 9
+                    },
+                    "start": {
+                      "day": 1,
+                      "iso": "2019-09-01T00:00:00",
+                      "year": 2019,
+                      "month": 9
+                    },
+                    "untilNow": false
+                  }
+                }
+              ]
+            },
+            "files": [
+              {
+                "fileName": "",
+                "key": "e86e6be3775640ed6272eb83779bde7c"
+              }
+            ]
+          },
+          "standardFields": {
+            "works": [
+              {
+                "companyName": "上海纽酷信息科技有限公司",
+                "description": "1.负责公司开发、测试、生产环境的稳定(机房、阿里云、华为云)\n              2. 负责公司生产环境发布流程和部署环境的变更(传统-k8s)\n                  3. 负责公司各环境 cicd 流程稳定(gitlab-ci、jenkins 、云效)\n             4. 负责公司私有化部署的方案制定和自动化流程实施,以及客户后续售后流程的跟踪",
+                "dateRange": {
+                  "untilNow": false,
+                  "end": {
+                    "day": 30,
+                    "iso": "2022-06-30T16:00:00Z",
+                    "month": 6,
+                    "year": 2022
+                  },
+                  "start": {
+                    "day": 31,
+                    "iso": "2022-01-31T16:00:00Z",
+                    "month": 1,
+                    "year": 2022
+                  }
+                },
+                "jobNames": [
+                  "运维开发工程师"
+                ]
+              },
+              {
+                "companyName": "艾融科技有限公司",
+                "description": "职责 \n               1. 负责公司 devops 平台的搭建,流水线脚本。\n                 2. 负责维护项目的 dev、sit、uat 环境的 kubernetes 集群,并负责服务上线。\n                3. 负责维护 git 仓库的代码分支(sit、trunk),并进行权限管理。\n             4. 负责对接开发,完成行方变更(如配置中心变更、服务发现方案)。",
+                "dateRange": {
+                  "untilNow": false,
+                  "end": {
+                    "day": 30,
+                    "iso": "2021-11-30T16:00:00Z",
+                    "month": 11,
+                    "year": 2021
+                  },
+                  "start": {
+                    "day": 31,
+                    "iso": "2021-05-31T16:00:00Z",
+                    "month": 5,
+                    "year": 2021
+                  }
+                },
+                "jobNames": [
+                  "运维工程师"
+                ]
+              },
+              {
+                "companyName": "上海百度研发中心",
+                "description": "职责: \n              1、 负责部署客户现场的 AI 平台,并进行日常问题解决。\n            2、 负责客户方定制化的容器化服务需求,从方案设计到部署,并撰写使用手册及部署手册。\n            3、 使用爬虫去测试研发的功能是否完善,对比爬取字段结果以及实际结果。",
+                "dateRange": {
+                  "untilNow": false,
+                  "end": {
+                    "day": 31,
+                    "iso": "2021-05-31T16:00:00Z",
+                    "month": 5,
+                    "year": 2021
+                  },
+                  "start": {
+                    "day": 30,
+                    "iso": "2020-11-30T16:00:00Z",
+                    "month": 11,
+                    "year": 2020
+                  }
+                },
+                "jobNames": [
+                  "运维工程师"
+                ]
+              },
+              {
+                "companyName": "杭州创新网络科技有限公司",
+                "description": "职责: \n             1、 参与公司产品的运行维护,管理公司负责的 web 和数据库服务器;\n             2、 负责数据库的备份和定时清理,监控服务器运行状态。\n             3、 负责部署以及可用性和服务质量保障,解决客户反馈的问题。",
+                "dateRange": {
+                  "untilNow": false,
+                  "end": {
+                    "day": 31,
+                    "iso": "2020-05-31T16:00:00Z",
+                    "month": 5,
+                    "year": 2020
+                  },
+                  "start": {
+                    "day": 30,
+                    "iso": "2018-06-30T16:00:00Z",
+                    "month": 6,
+                    "year": 2018
+                  }
+                },
+                "jobNames": [
+                  "运维工程师"
+                ]
+              }
+            ],
+            "source": "邮件收录",
+            "contactInfo": {
+              "mobilePhoneNumber": "1761218550",
+              "address": {
+                "city": "上海",
+                "code": "156310000",
+                "country": "中国"
+              }
+            },
+            "selfEvaluation": "个人优势熟练Linux操作系统熟练shell,并对python有一定了解;熟悉git/dvc进行模型、数据集和代码版本控制,gitlab代码托管平台,Jenkins搭建ci/cd部署微服务到容器化平台。熟悉监控系统和日志平台,zabbix、prometheus、elk/efk;熟悉存储集群,gfs、hdfs。熟悉k8s、docker系统安装和相关配置",
+            "certificates": [
+              {
+                "name": "运维工程师"
+              }
+            ],
+            "educations": [
+              {
+                "degree": {
+                  "name": "本科"
+                },
+                "schoolTags": [],
+                "isUnifiedEntrance": false,
+                "schoolName": "安徽信息工程学院",
+                "isHighest": true,
+                "majorNames": [
+                  "计算机科学与技术"
+                ],
+                "courseNames": [],
+                "dateRange": {
+                  "untilNow": false,
+                  "end": {
+                    "day": 31,
+                    "iso": "2017-12-31T16:00:00Z",
+                    "month": 12,
+                    "year": 2017
+                  },
+                  "start": {
+                    "day": 31,
+                    "iso": "2013-12-31T16:00:00Z",
+                    "month": 12,
+                    "year": 2013
+                  }
+                },
+                "isPrimary": true
+              }
+            ],
+            "humanInfo": {
+              "name": "李洪恩",
+              "workMonths": 40,
+              "dateOfBirth": {
+                "day": 30,
+                "iso": "1996-11-30T16:00:00Z",
+                "month": 11,
+                "year": 1996
+              },
+              "age": 25,
+              "genderName": "男",
+              "highestEducationLevel": null,
+              "firstWorkDate": {
+                "day": 30,
+                "iso": "2018-06-30T16:00:00Z",
+                "month": 6,
+                "year": 2018
+              },
+              "educationMonths": 48
+            },
+            "expectations": [
+              {
+                "companyTypes": [],
+                "workTypeNames": [],
+                "jobNames": [
+                  "运维工程师"
+                ],
+                "salaryRange": {
+                  "gt": {
+                    "period": "month",
+                    "amount": {
+                      "number": 27000,
+                      "unit": "CNY"
+                    }
+                  },
+                  "lt": {
+                    "period": "month",
+                    "amount": {
+                      "number": 30000,
+                      "unit": "CNY"
+                    }
+                  }
+                }
+              }
+            ],
+            "projects": [
+              {
+                "description": "公司要求将传统环境改造为 k8s集群,并完成服务迭代,直到项目上线。\n              项目职责: 负责 devops 平台搭建、分支管理、不同环境搭建部署及维护\n               项目价值: 完成 ci、cd 自动化。业务快速迭代,配置热加载(nacos )等需求。",
+                "name": "厦门国际银行项目容器化改造",
+                "dateRange": {
+                  "untilNow": false,
+                  "end": {
+                    "day": 30,
+                    "iso": "2021-11-30T16:00:00Z",
+                    "month": 11,
+                    "year": 2021
+                  },
+                  "start": {
+                    "day": 31,
+                    "iso": "2021-05-31T16:00:00Z",
+                    "month": 5,
+                    "year": 2021
+                  }
+                }
+              },
+              {
+                "companyName": "河南海泰信息技术有限公司",
+                "description": "1、 项目描述: 随着客户公司大型项目增多,项目服务数量增大,公司需要搭建微服务平台来完成公司业务。考虑到k8s群集部\n            署\n             2、 微服务的种种优势,于是决定搭建k8s群集,并将公司项目部署到k8s平台上。\n              3、 项目职责:主要负责k8s环境搭建。\n            4、 项目价值:节约资源成本,提高运维效率,实现了新功能快速上线目的。",
+                "name": "k8s部署",
+                "dateRange": {
+                  "untilNow": false,
+                  "end": {
+                    "day": 31,
+                    "iso": "2019-10-31T16:00:00Z",
+                    "month": 10,
+                    "year": 2019
+                  },
+                  "start": {
+                    "day": 31,
+                    "iso": "2019-10-31T16:00:00Z",
+                    "month": 10,
+                    "year": 2019
+                  }
+                }
+              },
+              {
+                "description": "1、 公司要求部署一个 web 群集,考虑到 lvs+keepalived 的天然配合性,以及 lvs的\n                 2、 强大调度能力,决定让 lvs和 keepalived 组成主备调度后方 nginx,nginx 处理静\n              3、 态网站的请求并通过调度模块将动态网站的请求交给数台 tomcat 处理。并在\n                   4、 tomcat 之间通过 reids 缓存服务,实现 tomcat的 session 共享。\n              5、 项目职责: 负责集群环境及服务的部署\n              6、 项目价值: 实现了公司 web 节点负载,以及调度器的高可用,网页请求的动静分离,对 tomcat\n             7、 服务器内存资源的优化。",
+                "dateRange": {
+                  "untilNow": false,
+                  "end": {
+                    "day": 31,
+                    "iso": "2019-08-31T16:00:00Z",
+                    "month": 8,
+                    "year": 2019
+                  },
+                  "start": {
+                    "day": 31,
+                    "iso": "2019-08-31T16:00:00Z",
+                    "month": 8,
+                    "year": 2019
+                  }
+                }
+              }
+            ]
+          }
+        }
+      }
+    ],
+    "mergeResumeAndConverted": [
+      {
+        "data": {}
+      }
+    ]
+  },
+  "tags": []
+}

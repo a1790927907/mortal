@@ -1,0 +1,382 @@
+{
+    "id": 1,
+    "name": "My workflow",
+    "connection": {
+        "Start": [
+            {
+                "id": "c6f29fc7-894e-4e9b-b78b-0f42ce84ed11",
+                "name": "IF"
+            }
+        ],
+        "9b606ffa-e7df-4a4b-a1a5-7bb02b8b6f29": [
+            {
+                "id": "18726705-51d5-4868-b84e-c512591deb63",
+                "name": "HTTP Request1"
+            },
+            {
+                "id": "266e9d81-f061-4683-bbc7-5194281cb7b6",
+                "name": "HTTP Request2"
+            }
+        ],
+        "266e9d81-f061-4683-bbc7-5194281cb7b6": [
+            {
+                "id": "8fe8bfa0-e82a-4938-b84d-456b9f69bf7d",
+                "name": "PythonFunction1"
+            }
+        ],
+        "18726705-51d5-4868-b84e-c512591deb63": [
+            {
+                "id": "7f706bcf-2646-47f2-9fb6-76993a1291f4",
+                "name": "PythonFunction"
+            }
+        ],
+        "666b65f4-7304-4ff3-9a95-f99a91d50a13": [
+            {
+                "id": "3463fe0e-ae27-44f9-9a71-cfc1538fe652",
+                "name": "HTTP Request4"
+            }
+        ],
+        "c6f29fc7-894e-4e9b-b78b-0f42ce84ed11": [
+            {
+                "id": "9b606ffa-e7df-4a4b-a1a5-7bb02b8b6f29",
+                "name": "HTTP Request"
+            },
+            {
+                "id": "f1991631-1b3e-4630-9539-70a44dc49c05",
+                "name": "HTTP Request5"
+            }
+        ],
+        "f1991631-1b3e-4630-9539-70a44dc49c05": [
+            {
+                "id": "18726705-51d5-4868-b84e-c512591deb63",
+                "name": "HTTP Request1"
+            },
+            {
+                "id": "266e9d81-f061-4683-bbc7-5194281cb7b6",
+                "name": "HTTP Request2"
+            }
+        ],
+        "12a2fea3-787d-4c9f-8433-10c471aed5e2": [
+            {
+                "id": "666b65f4-7304-4ff3-9a95-f99a91d50a13",
+                "name": "HTTP Request3"
+            }
+        ],
+        "7f706bcf-2646-47f2-9fb6-76993a1291f4": [
+            {
+                "id": "12a2fea3-787d-4c9f-8433-10c471aed5e2",
+                "name": "Wait"
+            }
+        ],
+        "8fe8bfa0-e82a-4938-b84d-456b9f69bf7d": [
+            {
+                "id": "12a2fea3-787d-4c9f-8433-10c471aed5e2",
+                "name": "Wait"
+            }
+        ]
+    },
+    "nodes": [
+        {
+            "name": "Start",
+            "type": "n8n-nodes-base.start",
+            "payload": {
+                "parameters": {
+                    "retryOnFail": false,
+                    "maxTries": 0,
+                    "waitBetweenTries": 0,
+                    "continueOnFail": false
+                }
+            },
+            "id": "14d05153-3aa3-49fe-8b8f-e6ad33ccd45d"
+        },
+        {
+            "name": "HTTP Request",
+            "type": "n8n-nodes-base.httpRequest",
+            "payload": {
+                "parameters": {
+                    "url": "=https://transmitter.nadileaf.com/v2/entity/{{$node[\"Start\"].json[\"tenant\"]}}/{{$node[\"Start\"].json[\"entityType\"]}}/{{$node[\"Start\"].json[\"openId\"]}}",
+                    "options": {},
+                    "headerParametersUi": {
+                        "parameter": [
+                            {
+                                "name": "Authorization",
+                                "value": "={{$node[\"Start\"].json[\"openId\"]}}"
+                            }
+                        ]
+                    },
+                    "retryOnFail": false,
+                    "maxTries": 0,
+                    "waitBetweenTries": 0,
+                    "continueOnFail": false
+                }
+            },
+            "id": "9b606ffa-e7df-4a4b-a1a5-7bb02b8b6f29"
+        },
+        {
+            "name": "HTTP Request1",
+            "type": "n8n-nodes-base.httpRequest",
+            "payload": {
+                "parameters": {
+                    "requestMethod": "PUT",
+                    "url": "=https://transmitter.nadileaf.com/v2/entity/{{$node[\"Start\"].json[\"tenant\"]}}/{{$node[\"Start\"].json[\"entityType\"]}}/{{$node[\"Start\"].json[\"openId\"]}}",
+                    "options": {},
+                    "bodyParametersUi": {
+                        "parameter": [
+                            {
+                                "name": "a",
+                                "value": "={{$node[\"Start\"].json[\"openId\"]}}"
+                            },
+                            {
+                                "name": "ff",
+                                "value": "={{$node[\"HTTP Request\"].json[\"meta\"][\"createdAt\"]}}"
+                            },
+                            {
+                                "name": "gf",
+                                "value": "={{$node[\"HTTP Request5\"].json[\"data\"][\"standardFields\"][\"works\"][0][\"dateRange\"][\"start\"][\"day\"]}}"
+                            }
+                        ]
+                    },
+                    "headerParametersUi": {
+                        "parameter": [
+                            {
+                                "name": "Authorization",
+                                "value": "={{$node[\"Start\"].json[\"openId\"]}}"
+                            }
+                        ]
+                    },
+                    "queryParametersUi": {
+                        "parameter": [
+                            {
+                                "name": "={{$node[\"Start\"].json[\"entityType\"]}}",
+                                "value": "={{$node[\"HTTP Request\"].json[\"meta\"][\"deleteAt\"]}}"
+                            }
+                        ]
+                    },
+                    "retryOnFail": true,
+                    "maxTries": 2,
+                    "waitBetweenTries": 2000,
+                    "continueOnFail": true
+                }
+            },
+            "id": "18726705-51d5-4868-b84e-c512591deb63"
+        },
+        {
+            "name": "HTTP Request2",
+            "type": "n8n-nodes-base.httpRequest",
+            "payload": {
+                "parameters": {
+                    "requestMethod": "POST",
+                    "url": "=https://transmitter.nadileaf.com/v2/entity/{{$node[\"Start\"].json[\"tenant\"]}}/{{$node[\"Start\"].json[\"entityType\"]}}/{{$node[\"Start\"].json[\"openId\"]}}",
+                    "jsonParameters": true,
+                    "options": {
+                        "timeout": 60000
+                    },
+                    "bodyParametersJson": "={\"data\": {{$node[\"HTTP Request\"].json[\"data\"]}}, \"meta\": {{$node[\"HTTP Request\"].json[\"meta\"]}}}",
+                    "headerParametersJson": "={\"authorization\": \"{{$node[\"HTTP Request\"].json[\"data\"][\"standardFields\"][\"works\"][0][\"companyName\"]}}\"}",
+                    "queryParametersJson": "={\"schema\": \"{{$node[\"HTTP Request\"].json[\"meta\"][\"standardSchema\"]}}#/properties/data\"}",
+                    "retryOnFail": false,
+                    "maxTries": 0,
+                    "waitBetweenTries": 0,
+                    "continueOnFail": false
+                }
+            },
+            "id": "266e9d81-f061-4683-bbc7-5194281cb7b6"
+        },
+        {
+            "name": "HTTP Request3",
+            "type": "n8n-nodes-base.httpRequest",
+            "payload": {
+                "parameters": {
+                    "url": "=https://transmitter.nadileaf.com/v2/entity/{{$node[\"Start\"].json[\"tenant\"]}}/{{$node[\"Start\"].json[\"entityType\"]}}/{{$node[\"Start\"].json[\"openId\"]}}",
+                    "options": {},
+                    "headerParametersUi": {
+                        "parameter": [
+                            {
+                                "name": "Authorization",
+                                "value": "={{$node[\"Start\"].json[\"openId\"]}}"
+                            }
+                        ]
+                    },
+                    "retryOnFail": false,
+                    "maxTries": 0,
+                    "waitBetweenTries": 0,
+                    "continueOnFail": false
+                }
+            },
+            "id": "666b65f4-7304-4ff3-9a95-f99a91d50a13"
+        },
+        {
+            "name": "HTTP Request4",
+            "type": "n8n-nodes-base.httpRequest",
+            "payload": {
+                "parameters": {
+                    "url": "=https://transmitter.nadileaf.com/v2/entity/{{$node[\"Start\"].json[\"tenant\"]}}/{{$node[\"Start\"].json[\"entityType\"]}}/{{$node[\"Start\"].json[\"openId\"]}}",
+                    "responseFormat": "string",
+                    "dataPropertyName": "dataa",
+                    "options": {},
+                    "headerParametersUi": {
+                        "parameter": [
+                            {
+                                "name": "Authorization",
+                                "value": "={{$node[\"Start\"].json[\"openId\"]}}"
+                            }
+                        ]
+                    },
+                    "retryOnFail": false,
+                    "maxTries": 0,
+                    "waitBetweenTries": 0,
+                    "continueOnFail": false
+                }
+            },
+            "id": "3463fe0e-ae27-44f9-9a71-cfc1538fe652"
+        },
+        {
+            "name": "IF",
+            "type": "n8n-nodes-base.if",
+            "payload": {
+                "parameters": {
+                    "conditions": {
+                        "boolean": [
+                            {
+                                "value1": "",
+                                "value2": "={{$node[\"Start\"].json[\"entityType\"]}}"
+                            },
+                            {
+                                "value1": true,
+                                "operation": "notEqual",
+                                "value2": true
+                            },
+                            {}
+                        ],
+                        "dateTime": [
+                            {
+                                "value1": "={{$node[\"Start\"].json[\"tenant\"]}}",
+                                "value2": "2022-10-13T16:00:00.000Z"
+                            },
+                            {
+                                "value1": "=2022-10-04T16:00:00.000Z",
+                                "operation": "before",
+                                "value2": "2022-10-14T16:00:00.000Z"
+                            },
+                            {}
+                        ],
+                        "number": [
+                            {
+                                "operation": "isEmpty"
+                            },
+                            {
+                                "value1": 1231,
+                                "operation": "equal",
+                                "value2": 4125
+                            }
+                        ],
+                        "string": [
+                            {
+                                "value1": "={{$node[\"Start\"].json[\"entityType\"]}}",
+                                "operation": "endsWith",
+                                "value2": "Resume"
+                            },
+                            {
+                                "value1": "124",
+                                "operation": "notContains",
+                                "value2": "123"
+                            },
+                            {
+                                "value1": "123142",
+                                "operation": "regex",
+                                "value2": ".*?"
+                            }
+                        ]
+                    },
+                    "combineOperation": "any",
+                    "retryOnFail": false,
+                    "maxTries": 0,
+                    "waitBetweenTries": 0,
+                    "continueOnFail": false
+                }
+            },
+            "id": "c6f29fc7-894e-4e9b-b78b-0f42ce84ed11"
+        },
+        {
+            "name": "HTTP Request5",
+            "type": "n8n-nodes-base.httpRequest",
+            "payload": {
+                "parameters": {
+                    "url": "=https://transmitter.nadileaf.com/v2/entity/{{$node[\"Start\"].json[\"tenant\"]}}/{{$node[\"Start\"].json[\"entityType\"]}}/{{$node[\"Start\"].json[\"openId\"]}}",
+                    "options": {},
+                    "headerParametersUi": {
+                        "parameter": [
+                            {
+                                "name": "Authorization",
+                                "value": "={{$node[\"Start\"].json[\"openId\"]}}"
+                            }
+                        ]
+                    },
+                    "retryOnFail": false,
+                    "maxTries": 0,
+                    "waitBetweenTries": 0,
+                    "continueOnFail": false
+                }
+            },
+            "id": "f1991631-1b3e-4630-9539-70a44dc49c05"
+        },
+        {
+            "name": "Wait",
+            "type": "n8n-nodes-base.wait",
+            "payload": {
+                "parameters": {
+                    "amount": 10,
+                    "unit": "seconds",
+                    "retryOnFail": false,
+                    "maxTries": 0,
+                    "waitBetweenTries": 0,
+                    "continueOnFail": false
+                }
+            },
+            "id": "12a2fea3-787d-4c9f-8433-10c471aed5e2"
+        },
+        {
+            "name": "Wait1",
+            "type": "n8n-nodes-base.wait",
+            "payload": {
+                "parameters": {
+                    "resume": "specificTime",
+                    "dateTime": "2022-10-13T16:00:00.000Z",
+                    "retryOnFail": false,
+                    "maxTries": 0,
+                    "waitBetweenTries": 0,
+                    "continueOnFail": false
+                }
+            },
+            "id": "27ada1a4-35bf-4017-a21c-a294313c89ae"
+        },
+        {
+            "name": "PythonFunction",
+            "type": "n8n-nodes-base.pythonFunction",
+            "payload": {
+                "parameters": {
+                    "path": "/Users/zyh/mortal/src/main/data/functionCodes/7f706bcf-2646-47f2-9fb6-76993a1291f4.py",
+                    "retryOnFail": false,
+                    "maxTries": 0,
+                    "waitBetweenTries": 0,
+                    "continueOnFail": false
+                }
+            },
+            "id": "7f706bcf-2646-47f2-9fb6-76993a1291f4"
+        },
+        {
+            "name": "PythonFunction1",
+            "type": "n8n-nodes-base.pythonFunction",
+            "payload": {
+                "parameters": {
+                    "path": "/Users/zyh/mortal/src/main/data/functionCodes/8fe8bfa0-e82a-4938-b84d-456b9f69bf7d.py",
+                    "retryOnFail": false,
+                    "maxTries": 0,
+                    "waitBetweenTries": 0,
+                    "continueOnFail": false
+                }
+            },
+            "id": "8fe8bfa0-e82a-4938-b84d-456b9f69bf7d"
+        }
+    ]
+}
