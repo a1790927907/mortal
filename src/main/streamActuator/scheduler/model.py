@@ -11,12 +11,18 @@ class TaskStatus(BaseModel):
     status: Literal['success', 'failedAndContinue', 'pending', 'skip', 'failedNotContinue'] = Field(
         ..., description="task status"
     )
+    retryTime: int = Field(default=0, description="重试次数", example=0)
+    startTime: Optional[str] = Field(default=None, description="任务开始时间", example="xxx")
+    endTime: Optional[str] = Field(default=None, description="任务结束时间", example="xxx")
     errorMessage: Optional[str] = Field(default=None, description="error message if exists", example="xxx")
 
 
 class Record(BaseModel):
     require: bool = Field(default=False, description="是否需要记录日志", example=False)
-    tasksRunOpenid: str = Field(default_factory=lambda: uuid4().__str__(), description="tasks run id", example="xxx")
+    tasksRunOpenid: str = Field(
+        default_factory=lambda: uuid4().__str__(), description="tasks run open id", example="xxx"
+    )
+    tasksRunId: str = Field(default_factory=lambda: uuid4().__str__(), description="tasks run id", example="xxx")
     tasksRunningId: str = Field(
         default_factory=lambda: uuid4().__str__(), description="tasks running id", example="xxx"
     )

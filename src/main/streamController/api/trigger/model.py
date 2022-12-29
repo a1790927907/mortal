@@ -42,4 +42,4 @@ class TriggerConnectionResult(BaseModel):
 
 
 class TriggerConnectionResponse(BaseResponse):
-    result: TriggerConnectionResult = Field(default=None, description="trigger connection result")
+    result: Optional[TriggerConnectionResult] = Field(default=None, description="trigger connection result")

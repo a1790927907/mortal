@@ -7,7 +7,10 @@ from src.main.streamActuator.scheduler.model import TaskStatus
 
 class Record(BaseModel):
     require: bool = Field(default=False, description="是否需要记录日志", example=False)
-    tasksRunOpenid: str = Field(default_factory=lambda: uuid4().__str__(), description="tasks run id", example="xxx")
+    tasksRunOpenid: str = Field(
+        default_factory=lambda: uuid4().__str__(), description="tasks run open id", example="xxx"
+    )
+    tasksRunId: str = Field(default_factory=lambda: uuid4().__str__(), description="tasks run id", example="xxx")
     tasksRunningId: str = Field(
         default_factory=lambda: uuid4().__str__(), description="tasks running id", example="xxx"
     )

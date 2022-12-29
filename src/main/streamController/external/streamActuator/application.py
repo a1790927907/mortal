@@ -15,7 +15,7 @@ class Application(BaseApplication):
     async def _execute_connection(self, request_info: RequestInfo):
         status, response = await self.settings.session.post(
             self.settings.trigger_stream_url, json=request_info.dict(), func=self._execute_connection_response_callback,
-            ssl=False
+            ssl=False, timeout=None
         )
         if status != 200:
             raise StreamControllerException("执行流出错, status: {}, response: {}".format(status, response))

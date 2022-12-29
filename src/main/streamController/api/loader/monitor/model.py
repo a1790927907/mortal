@@ -1,5 +1,5 @@
-from typing import List, Optional
 from pydantic import BaseModel, Field
+from typing import List, Optional, Any
 from src.main.streamController.frame.response.model import BaseResponse
 
 
@@ -12,6 +12,9 @@ class TaskStatus(BaseModel):
     errorMessage: str = Field(default=None, description="task running error message if exists", example="xxx")
     createTime: str = Field(..., description="create time", example="xxx")
     updateTime: str = Field(..., description="update time", example="xxx")
+    retryTime: int = Field(default=0, description="任务重试次数", example=0)
+    startTime: Optional[str] = Field(default=None, description="开始时间", example="2022-12-14 00:00:00")
+    endTime: Optional[str] = Field(default=None, description="开始时间", example="2022-12-14 00:00:00")
 
 
 class TaskPayload(BaseModel):
@@ -39,4 +42,30 @@ class TaskStatusLoadedResult(BaseModel):
 
 
 class TaskStatusLoadedResponse(BaseResponse):
-    result: Optional[List[TaskStatusLoadedResult]] = Field(default=None, description="task status loaded result")
+    result: Optional[TaskStatusLoadedResult] = Field(default=None, description="task status loaded result")
+
+
+class TaskOutput(BaseModel):
+    data: Any = Field(..., description="output data", example="xxx")
+    extra: dict = Field(default={}, description="extra value", example={})
+
+
+class TasksRunningStatusLoadedEntity(TaskStatusLoadedEntity):
+    context: Optional[TaskOutput] = Field(default=None, description="tasks running output")
+
+
+class TasksRunningStatusLoadedResult(TaskStatusLoadedResult):
+    inExecution: List[TasksRunningStatusLoadedEntity] = Field(..., description="需要执行的tasks")
+    outExecution: List[TasksRunningStatusLoadedEntity] = Field(..., description="不需要执行的tasks")
+
+
+class TasksRunningStatusLoadedResponse(BaseResponse):
+    result: Optional[TasksRunningStatusLoadedResult] = Field(default=None, description="task status loaded result")
+
+
+class TasksRunningMappingResult(BaseModel):
+    tasksRunId: str = Field(..., description="tasks running id mapping tasks run id", example="xxx")
+
+
+class TasksRunningMappingResponse(BaseResponse):
+    result: Optional[TasksRunningMappingResult] = Field(default=None, description="tasks running mapping result")

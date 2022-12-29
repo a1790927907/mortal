@@ -13,6 +13,10 @@ class UpsertTaskResponse(BaseResponse):
     result: Optional[UpsertTaskResult] = Field(default=None, description="upsert task result")
 
 
+class DeleteTaskResponse(UpsertTaskResponse):
+    ...
+
+
 class Task(BaseTask):
     id: str = Field(..., description="connection id", example="xxx")
     createTime: str = Field(..., description="create time", example="xxx")

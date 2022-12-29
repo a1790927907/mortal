@@ -11,6 +11,7 @@ class Application(BaseApplication):
 
     async def create_tasks_run(self, request_info: TasksRun):
         insert_sql: Insert = Insert(table=self.table, inline=True).values(request_info.dict())
+        insert_sql = insert_sql.on_conflict_do_update(index_elements=["id"], set_=request_info.dict())
         db = await self.get_db()
         await db.execute(insert_sql)
         logger.info("存储 tasks run {} openid {} connection id {} 成功".format(
@@ -18,12 +19,12 @@ class Application(BaseApplication):
         ))
 
     async def get_tasks_runs_by_connection_id(self, connection_id: str):
-        query = self.table.select().filter_by(connectionId=connection_id).order_by(self.table.c.updateTime.desc())
+        query = self.table.select().filter_by(connectionId=connection_id).order_by(self.table.c.startTime.desc())
         result = await self.fetch_all(query)
         return result
 
     async def get_tasks_runs_by_openid(self, openid: str):
-        query = self.table.select().filter_by(openid=openid).order_by(self.table.c.updateTime.desc())
+        query = self.table.select().filter_by(openid=openid).order_by(self.table.c.startTime.desc())
         result = await self.fetch_all(query)
         return result
 
@@ -36,7 +37,9 @@ class Application(BaseApplication):
         filter_info_source_mapping = {
             "updateTime": self.table.c.updateTime,
             "openid": self.table.c.openid,
-            "status": self.table.c.status
+            "status": self.table.c.status,
+            "startTime": self.table.c.startTime,
+            "endTime": self.table.c.endTime
         }
         source = filter_info_source_mapping[filter_info.by]
         if filter_info.factor == "eq":
@@ -58,10 +61,17 @@ class Application(BaseApplication):
                 criteria.append(self.process_filter_info(filter_info))
         query = query.filter(*criteria)
         if request_info.order.by == "updateTime":
-            if request_info.order.type == "desc":
-                query = query.order_by(self.table.c.updateTime.desc())
-            else:
-                query = query.order_by(self.table.c.updateTime.asc())
+            order_column = self.table.c.updateTime
+        elif request_info.order.by == "startTime":
+            order_column = self.table.c.startTime
+        elif request_info.order.by == "endTime":
+            order_column = self.table.c.endTime
+        else:
+            return query
+        if request_info.order.type == "desc":
+            query = query.order_by(order_column.desc())
+        else:
+            query = query.order_by(order_column.asc())
         return query
 
     async def get_tasks_runs_number_after_search(self, request_info: SearchTasksRunRequestInfo) -> int:

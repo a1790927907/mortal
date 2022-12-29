@@ -62,7 +62,7 @@ class Application(BaseApplication):
         }, filterInfo=request_info.filterInfo, order=request_info.order, connectionId=request_info.connectionId)
         if database_request_info.filterInfo is not None:
             for filter_info in database_request_info.filterInfo:
-                if filter_info.by == "updateTime":
+                if filter_info.by == "updateTime" or filter_info.by == "startTime" or filter_info.by == "endTime":
                     if isinstance(filter_info.value, str):
                         filter_info.value = self.parse_date(cast(str, filter_info.value))
         return database_request_info

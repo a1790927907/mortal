@@ -18,7 +18,7 @@ class Application(BaseApplication):
         logger.info("存储 tasks running {} 成功".format(request_info.id))
 
     async def get_tasks_running_by_connection_id(self, connection_id: str):
-        query = self.table.select().filter_by(connectionId=connection_id)
+        query = self.table.select().filter_by(connectionId=connection_id).order_by(self.table.c.updateTime.desc())
         result = await self.fetch_all(query)
         return result
 

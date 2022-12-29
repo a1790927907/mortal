@@ -19,6 +19,6 @@ class Application(BaseApplication):
             await self.producer.start()
         return self.producer
 
-    async def produce_message(self, topic: str, message: dict):
+    async def produce_message(self, topic: str, message: dict, *, partition: Optional[int] = None):
         producer = await self.get_producer()
-        await producer.send_and_wait(topic, json.dumps(message, ensure_ascii=False).encode())
+        await producer.send_and_wait(topic, json.dumps(message, ensure_ascii=False).encode(), partition=partition)

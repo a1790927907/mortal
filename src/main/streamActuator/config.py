@@ -2,6 +2,7 @@ import os
 import asyncio
 import aiohttp
 from src.main.utils.custom_aiohttp_session import HoMuraSession
+from src.main.globalSettings.config import Settings as globalSettings
 
 
 tags_metadata = [
@@ -31,7 +32,7 @@ class Settings:
         "KAFKA_MONITOR_TASK_STATUS_WORKER_TOPIC", "stream-monitor-tasks-running-worker"
     )
     actuator_monitor_queue_size: int = int(os.getenv("ACTUATOR_MONITOR_QUEUE_SIZE", "3"))
-    function_codes_dir: str = os.path.join(os.path.dirname(os.path.dirname(__file__)), "data/functionCodes")
+    function_codes_dir: str = globalSettings.function_codes_dir
     session: HoMuraSession = HoMuraSession(
         aiohttp.ClientSession, retry_when=lambda x: not isinstance(x, asyncio.TimeoutError), retry_interval=1
     )

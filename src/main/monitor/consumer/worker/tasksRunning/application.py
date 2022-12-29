@@ -1,5 +1,4 @@
 import json
-import asyncio
 
 from typing import Optional, Union
 from src.main.utils.logger import logger
@@ -26,14 +25,17 @@ class Application(BaseApplication):
         except ValidationError as e:
             logger.exception(e)
 
-    async def _save_tasks_running(self, request_info: SaveTasksRunningRequestInfo):
-        sem = await self.get_sem(self.settings.kafka_monitor_tasks_running_worker_max_sem)
-        async with sem:
-            await external_app.tasks_running_app.save_tasks_running(request_info)
-
-    async def save_tasks_running(self, request_info: SaveTasksRunningRequestInfo):
+    @staticmethod
+    async def save_tasks_running(request_info: SaveTasksRunningRequestInfo):
         try:
-            await self._save_tasks_running(request_info)
+            await external_app.tasks_running_app.save_tasks_running(request_info)
+        except Exception as e:
+            logger.exception(e)
+
+    @staticmethod
+    async def delete_tasks_running(request_info: DeleteTasksRunningRequestInfo):
+        try:
+            await external_app.tasks_running_app.delete_tasks_running(request_info.id)
         except Exception as e:
             logger.exception(e)
 
@@ -41,7 +43,7 @@ class Application(BaseApplication):
         request_info = self.get_request_info(message)
         if request_info is not None:
             if isinstance(request_info, DeleteTasksRunningRequestInfo):
-                await external_app.tasks_running_app.delete_tasks_running(request_info.id)
+                await self.delete_tasks_running(request_info)
             else:
                 await self.save_tasks_running(request_info)
 
@@ -51,5 +53,5 @@ class Application(BaseApplication):
         logger.info("开始消费: {}".format(topics))
         while True:
             async for message in consumer:
-                asyncio.create_task(self.process_message(message))
+                await self.process_message(message)
                 await consumer.commit()

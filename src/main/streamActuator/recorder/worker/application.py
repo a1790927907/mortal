@@ -5,6 +5,8 @@ from typing import Type, List, Any, Optional
 from pydantic.error_wrappers import ValidationError
 from src.main.streamActuator.config import Settings
 from src.main.streamActuator.recorder.worker.model import QueueMessage
+from src.main.streamActuator.recorder.redis.model import TasksRunningMapping
+from src.main.streamActuator.recorder.redis.application import application as redis_app
 from src.main.streamActuator.recorder.monitor.application import application as monitor_app
 from src.main.streamActuator.recorder.base.application import Application as BaseApplication
 from src.main.streamActuator.recorder.monitor.model import TaskStatusRequestInfo, TasksRunRequestInfo, \
@@ -45,21 +47,26 @@ class Application(BaseApplication):
             model, coroutine = TasksRunRequestInfo, monitor_app.save_tasks_run
         elif message.type == "saveTasksRunning":
             model, coroutine = TasksRunningRequestInfo, monitor_app.save_tasks_running
+        elif message.type == "saveTasksRunningMapping":
+            return redis_app.save_tasks_running_mapping(TasksRunningMapping(**message.message))
         else:
             if "id" not in message.message:
                 logger.error("删除 tasks running 时 遇到问题: message 不合法(没有id) {}".format(message.message))
                 return
-            return monitor_app.delete_tasks_running(message.message["id"])
+            return monitor_app.delete_tasks_running(message.message["id"], partition=message.messageConfig.partition)
         try:
-            return coroutine(model(**message.message))
+            return coroutine(model(**message.message), partition=message.messageConfig.partition)
         except ValidationError as e:
             logger.error("操作类型: {}, 验证 request info 失败".format(message.type))
             logger.exception(e)
 
     async def process_message(self, message: Any):
-        coroutine = await self.get_execution_coroutine(message)
-        if coroutine is not None:
-            await coroutine
+        try:
+            coroutine = self.get_execution_coroutine(message)
+            if coroutine is not None:
+                await coroutine
+        except Exception as e:
+            logger.exception(e)
 
     async def consume(self, queue: asyncio.Queue):
         logger.info("开始消费queue: {}".format(id(queue)))

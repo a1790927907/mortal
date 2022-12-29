@@ -33,7 +33,7 @@ class Application(BaseApplication):
         retry_time = retry_time or 1
         context = {key: value["value"] for key, value in self.context.items()}
         extra_kwargs = {key: value.get("extraValue") or {} for key, value in self.context.items()}
-        for i in range(retry_time):
+        for i in range(retry_time + 1):
             try:
                 if inspect.iscoroutinefunction(func):
                     result = await func(context, **extra_kwargs)
@@ -44,6 +44,7 @@ class Application(BaseApplication):
                 if i < retry_time - 1:
                     logger.exception(e)
                     logger.warning("任务: {} 即将重试第 {} 次".format(self.task.name, i + 1))
+                    self.retry_time += 1
                     await asyncio.sleep(retry_interval)
                 else:
                     raise e

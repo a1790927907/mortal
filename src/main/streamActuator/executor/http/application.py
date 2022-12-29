@@ -28,12 +28,12 @@ class Application(BaseApplication):
         obj: dict = json.loads(json_string)
         return obj
 
-    def process_task_parameters(self) -> Output:
+    def _process_task_parameters(self) -> Output:
         parameters = self.task.payload.parameters
         timeout = jmespath.search("options.timeout", parameters)
         result = {"method": "get".upper()}
         if timeout:
-            result["timeout"] = int(timeout / 1000)
+            result["timeout"] = int(timeout / 1000) if timeout >= 0 else timeout
         if "url" in parameters:
             result["url"] = self._parse_raw_expressions(parameters["url"])
         if "requestMethod" in parameters:
@@ -67,20 +67,33 @@ class Application(BaseApplication):
         result["continueOnFailed"] = parameters.get("continueOnFail", False)
         return Output(**result)
 
+    def process_task_parameters(self) -> Output:
+        output = self._process_task_parameters()
+        output.body = output.body or output.data
+        output.data = None
+        if output.headers is not None:
+            content_type_key = next(filter(lambda x: x.lower() == "content-type", output.headers.keys()), None)
+            if content_type_key is not None and output.headers[content_type_key] == "application/x-www-form-urlencoded":
+                output.data = output.data or output.body
+                output.body = None
+        return output
+
     async def _execute_task(self, parameters: Output):
         try:
             async with aiohttp.ClientSession() as session:
-                # TODO: timeout 支持无上限
                 res = await session.request(
                     parameters.method.lower(), parameters.url, data=parameters.data, json=parameters.body,
-                    params=parameters.params, headers=parameters.headers, timeout=parameters.timeout, ssl=False
+                    params=parameters.params, headers=parameters.headers, ssl=False,
+                    timeout=parameters.timeout if parameters.timeout >= 0 else None
                 )
                 if res.status != 200:
                     response = await res.text()
                     message = "请求 {} 失败 status: {} response: {}".format(res.url.human_repr(), res.status, response)
                     self.error_message = message
                     result = safe_load_json(response, return_when_error=response)
-                    self.set_result({"value": result, "extraValue": {"status": res.status, "url": res.url.human_repr()}})
+                    self.set_result(
+                        {"value": result, "extraValue": {"status": res.status, "url": res.url.human_repr()}}
+                    )
                     return False
                 if parameters.response.format == "json":
                     result = await res.json()
@@ -101,13 +114,14 @@ class Application(BaseApplication):
         parameters = self.process_task_parameters()
         request_time = parameters.retry.retryTime if parameters.retry is not None else 1
         now = time.time()
-        for i in range(request_time):
+        for i in range(request_time + 1):
             is_success = await self._execute_task(parameters)
             if is_success is True:
                 self.merge_result({"executeTime": time.time() - now})
                 return is_success
             if parameters.retry is not None and i < request_time - 1:
                 logger.warning("任务: {} 即将重试第 {} 次".format(self.task.name, i + 1))
+                self.retry_time += 1
                 await asyncio.sleep(parameters.retry.retryInterval)
         self.merge_result({"executeTime": time.time() - now})
         raise StreamActuatorException(self.error_message, error_code=400)

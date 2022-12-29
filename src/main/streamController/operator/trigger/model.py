@@ -6,7 +6,10 @@ from pydantic import BaseModel, Field
 
 class Record(BaseModel):
     require: bool = Field(default=False, description="是否需要记录日志", example=False)
-    tasksRunOpenid: str = Field(default_factory=lambda: uuid4().__str__(), description="tasks run id", example="xxx")
+    tasksRunOpenid: str = Field(
+        default_factory=lambda: uuid4().__str__(), description="tasks run open id", example="xxx"
+    )
+    tasksRunId: str = Field(default_factory=lambda: uuid4().__str__(), description="tasks run id", example="xxx")
     tasksRunningId: str = Field(
         default_factory=lambda: uuid4().__str__(), description="tasks running id", example="xxx"
     )
@@ -31,7 +34,14 @@ class LastExecutionInfo(BaseModel):
 class RequestInfo(BaseModel):
     input: dict = Field(..., description="input value", example={})
     connectionId: str = Field(..., description="需要触发的connection的id", example="xxx")
-    record: Optional[Record] = Field(default_factory=lambda: Record(), description="日志记录相关")
+    record: Record = Field(default_factory=lambda: Record(), description="日志记录相关")
     lastExecutionInfo: Optional[LastExecutionInfo] = Field(
         default=None, description="上次的执行记录信息, 一般不填写就会从头执行"
     )
+    asynchronous: bool = Field(default=False, description="是否异步执行", example=False)
+
+
+class RestartTasksRunRequestInfo(BaseModel):
+    tasksRunId: str = Field(..., description="tasks run id", exmaple="xxx")
+    asynchronous: bool = Field(default=True, description="是否异步执行", example=True)
+    record: Record = Field(default_factory=lambda: Record(), description="日志记录相关")

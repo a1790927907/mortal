@@ -26,3 +26,9 @@ class Application(BaseApplication):
         query = self.table.select().filter_by(connectionId=connection_id).order_by(self.table.c.updateTime.desc())
         result = await self.fetch_all(query)
         return result
+
+    async def delete_task_by_id(self, task_id: str):
+        query = self.table.delete().filter_by(id=task_id)
+        db = await self.get_db()
+        await db.execute(query)
+        logger.info("删除 task {} 成功".format(task_id))

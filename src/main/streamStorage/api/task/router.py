@@ -3,7 +3,8 @@ from fastapi import APIRouter, Response, Path, Query
 from src.main.streamStorage.api.base.app import process_request
 from src.main.streamStorage.backend.application import application as backend_app
 from src.main.streamStorage.backend.task.model import CreateTaskRequestInfo, UpdateTaskRequestInfo
-from src.main.streamStorage.api.task.model import UpsertTaskResponse, GetTaskResponse, GetTasksResponse
+from src.main.streamStorage.api.task.model import UpsertTaskResponse, GetTaskResponse, GetTasksResponse, \
+    DeleteTaskResponse
 
 
 router_app = APIRouter(prefix="/task", tags=["task"])
@@ -43,3 +44,15 @@ async def get_tasks_by_connection_id(
 ):
     result = await process_request(response, app.get_tasks_by_connection_id(connection_id))
     return result
+
+
+@router_app.delete(
+        "/{task_id}", response_model=DeleteTaskResponse,
+        description="根据 connection id 删除相关task", name="根据 connection id 删除相关task"
+)
+async def delete_task_by_task_id(
+        response: Response, task_id: str = Path(..., description="task id", example="xx")
+):
+    result = await process_request(response, app.delete_task_by_id(task_id))
+    return result
+

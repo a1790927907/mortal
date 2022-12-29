@@ -49,6 +49,7 @@ class Settings:
     save_stream_connection_url: str = stream_storage_server + "/connection/store/save"
     save_stream_task_url: str = stream_storage_server + "/task/save/{task_id}"
     get_stream_task_url: str = stream_storage_server + "/task/{task_id}"
+    delete_stream_task_url: str = stream_storage_server + "/task/{task_id}"
     get_stream_connection_url: str = stream_storage_server + "/connection/{connection_id}"
     get_stream_connection_by_reference_url: str = stream_storage_server + "/connection/reference/{reference_id}"
     get_stream_tasks_by_connection_url: str = stream_storage_server + "/task/reference/connection/{connection_id}"
@@ -59,6 +60,9 @@ class Settings:
     get_tasks_run_input_url: str = monitor_server + "/monitor/tasksRunInput/reference/tasksRun/{tasks_run_id}"
     get_all_task_status_by_tasks_run_id: str = monitor_server + "/monitor/taskStatus/reference/tasksRun/{run_id}"
     get_task_output_url: str = monitor_server + "/monitor/taskOutput/condition/status/{task_status_id}"
+    get_tasks_running_by_id_url: str = monitor_server + "/monitor/tasksRunning/condition/id/{tasks_running_id}"
+    get_tasks_runnings_by_connection_id_url: str = monitor_server + "/monitor/tasksRunning/" \
+                                                                    "reference/connection/{connection_id}"
     session: HoMuraSession = HoMuraSession(
         aiohttp.ClientSession, retry_interval=1, retry_when=lambda x: not isinstance(x, asyncio.TimeoutError)
     )

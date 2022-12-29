@@ -1,4 +1,4 @@
-import os
+from src.main.globalSettings.config import Settings as globalSettings
 
 
 tags_metadata = [
@@ -17,7 +17,7 @@ class Settings:
     author: str = "zyh"
     version: str = "1.0.0"
     description: str = "sb"
-    function_codes_dir: str = os.path.join(os.path.dirname(os.path.dirname(__file__)), "data/functionCodes")
+    function_codes_dir: str = globalSettings.function_codes_dir
 
     @classmethod
     def to_dict(cls):

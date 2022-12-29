@@ -1,5 +1,6 @@
 import asyncio
 
+from typing import List
 from src.main.streamController.base.application import Application as BaseApplication
 from src.main.streamController.external.application import application as external_app
 
@@ -12,6 +13,14 @@ class Application(BaseApplication):
         )
         return parsed_result
 
+    @staticmethod
+    async def remove_remain_tasks(connection_id: str, tasks: List[dict]):
+        all_tasks = await external_app.storage_app.get_tasks_by_connection(connection_id)
+        target_task_ids = [task["id"] for task in tasks]
+        for task in all_tasks:
+            if task["id"] not in target_task_ids:
+                await external_app.storage_app.delete_task_by_id(task["id"])
+
     async def _save_stream_by_reference_id(self, reference_id: int):
         workflow_entity = await external_app.n8n_app.get_workflow_by_id(reference_id)
         parsed_workflow_entity = await self.process_workflow_entity(workflow_entity)
@@ -19,6 +28,7 @@ class Application(BaseApplication):
         connection_id = await external_app.storage_app.upsert_connection({
             "payload": connection, "referenceId": reference_id, "name": workflow_entity["name"]
         })
+        await self.remove_remain_tasks(connection_id, tasks)
         store_tasks_request_info = {
             task["id"]: {**task, "connectionId": connection_id} for task in tasks
         }

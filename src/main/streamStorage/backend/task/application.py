@@ -65,3 +65,12 @@ class Application(BaseApplication):
         result = await database_app.task_app.get_tasks_by_connection_id(connection_id)
         format_list_to_be_json_serializable(result)
         return {"result": result}
+
+    async def _delete_task_by_id(self, task_id: str):
+        task = await self._get_task_by_id(task_id)
+        await database_app.task_app.delete_task_by_id(task_id)
+        return {"id": task_id, "name": task["name"]}
+
+    async def delete_task_by_id(self, task_id: str):
+        result = await self._delete_task_by_id(task_id)
+        return {"result": result}

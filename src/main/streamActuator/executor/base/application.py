@@ -18,6 +18,7 @@ class Application(BaseApplication):
         self.context = context
         self._result = None
         self.error_message: Optional[str] = None
+        self.retry_time: int = 0
 
     def merge_result(self, value: dict):
         if self._result is None:

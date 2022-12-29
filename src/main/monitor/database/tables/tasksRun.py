@@ -11,6 +11,8 @@ class Table(Settings.Base):
     status = sqlalchemy.Column(sqlalchemy.String(600), nullable=False, index=True)
     connectionId = sqlalchemy.Column(sqlalchemy.String(600), nullable=False, index=True)
     openid = sqlalchemy.Column(sqlalchemy.String(600), nullable=False, index=True)
+    startTime = sqlalchemy.Column(sqlalchemy.DateTime, nullable=False, index=True)
+    endTime = sqlalchemy.Column(sqlalchemy.DateTime, nullable=False, index=True)
     createTime = sqlalchemy.Column(sqlalchemy.DateTime, nullable=False, server_default=func.now())
     updateTime = sqlalchemy.Column(sqlalchemy.DateTime, nullable=False, index=True)
 

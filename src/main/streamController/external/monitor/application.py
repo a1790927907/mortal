@@ -93,3 +93,31 @@ class Application(BaseApplication):
                 ), error_code=400
             )
         return response["result"]
+
+    async def get_tasks_running_by_id(self, tasks_running_id: str) -> Optional[dict]:
+        status, response = await self.settings.session.get(
+            self.settings.get_tasks_running_by_id_url.format(tasks_running_id=tasks_running_id),
+            func=self._request_response_callback, ssl=False, timeout=120
+        )
+        if status == 404:
+            return
+        elif status != 200:
+            raise StreamControllerException(
+                "获取tasks running id {} 失败, status: {}, response: {}".format(
+                    tasks_running_id, status, response
+                ), error_code=400
+            )
+        return response["result"]
+
+    async def get_multiple_tasks_running_by_connection_id(self, connection_id: str) -> List[dict]:
+        status, response = await self.settings.session.get(
+            self.settings.get_tasks_runnings_by_connection_id_url.format(connection_id=connection_id),
+            func=self._request_response_callback, ssl=False, timeout=120
+        )
+        if status != 200:
+            raise StreamControllerException(
+                "获取connection id {} 对应的所有 tasks running 失败, status: {}, response: {}".format(
+                    connection_id, status, response
+                ), error_code=400
+            )
+        return response["result"]

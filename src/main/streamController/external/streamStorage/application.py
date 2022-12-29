@@ -81,6 +81,23 @@ class Application(BaseApplication):
         return result
 
     @staticmethod
+    async def delete_task_by_id_response_callback(res: aiohttp.ClientResponse):
+        if res.status != 200:
+            response = await res.text()
+            raise StreamControllerException("删除task失败, status: {}, url: {}, response: {}".format(
+                res.status, res.url.human_repr(), response
+            ), error_code=400)
+        result = await res.json()
+        return result["result"]
+
+    async def delete_task_by_id(self, task_id: str):
+        result = await self.settings.session.delete(
+            self.settings.delete_stream_task_url.format(task_id=task_id), ssl=False, timeout=120,
+            func=self.delete_task_by_id_response_callback
+        )
+        logger.info("删除 task {} 成功, id: {}".format(result["name"], result["id"]))
+
+    @staticmethod
     async def upsert_task_response_callback(res: aiohttp.ClientResponse):
         if res.status != 200:
             response = await res.text()

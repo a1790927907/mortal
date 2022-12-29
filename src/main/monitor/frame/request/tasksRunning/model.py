@@ -9,11 +9,14 @@ class TaskStatus(BaseModel):
     status: Literal['success', 'failedAndContinue', 'pending', 'skip', 'failedNotContinue'] = Field(
         ..., description="task status"
     )
+    retryTime: int = Field(default=0, description="重试次数", example=0)
+    startTime: str = Field(default=None, description="任务开始时间", example="xxx")
+    endTime: Optional[str] = Field(default=None, description="任务结束时间", example="xxx")
     errorMessage: Optional[str] = Field(default=None, description="error message if exists", example="xxx")
 
 
 class TasksRunningStatusPayload(BaseModel):
-    taskStatus: List[TaskStatus] = Field(default=None, description="task status", example=None)
+    taskStatus: Optional[List[TaskStatus]] = Field(default=[], description="task status", example=None)
 
 
 class TasksRunning(BaseModel):

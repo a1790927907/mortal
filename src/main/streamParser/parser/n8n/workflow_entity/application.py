@@ -44,7 +44,9 @@ class Application(BaseApplication):
         parameters = node.parameters
         function_code = parameters.get("functionCode") or ""
         if not function_code:
-            path = os.path.join(self.settings.function_codes_dir, "default.py")
+            normal_function_path = os.path.join(self.settings.function_codes_dir, "default.py")
+            async_function_path = os.path.join(self.settings.function_codes_dir, "default_async.py")
+            path = normal_function_path if node.type == "n8n-nodes-base.pythonFunction" else async_function_path
         else:
             path = os.path.join(self.settings.function_codes_dir, "{}.py".format(node.id))
             with open(path, "w") as f:
@@ -59,7 +61,7 @@ class Application(BaseApplication):
                 continue
             if node.type not in self.allowed_node_type:
                 raise StreamParserException("不合法的node {}".format(node.type), error_code=400)
-            if node.type == "n8n-nodes-base.pythonFunction":
+            if node.type == "n8n-nodes-base.pythonFunction" or node.type == "n8n-nodes-base.pythonAsyncFunction":
                 self.process_function_node(node)
             result.append({
                 "name": node.name,

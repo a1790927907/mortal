@@ -10,6 +10,8 @@ class TasksRunRequestInfo(BaseModel):
     executeTime: float = Field(default=None, description="task run cost time", example=0.)
     status: str = Field(..., description="tasks run status summary", example="xxx")
     connectionId: str = Field(..., description="tasks run binding connection id", example="xxx")
+    startTime: str = Field(..., description="开始时间", example="2022-12-14 00:00:00")
+    endTime: str = Field(..., description="开始时间", example="2022-12-14 00:00:00")
     openid: str = Field(
         default_factory=lambda: uuid4().__str__(), description="task run id, 可重复的run id 默认uuid", example="xxx"
     )
@@ -22,19 +24,13 @@ class TaskStatusRequestInfo(BaseModel):
     executeTime: float = Field(default=None, description="task running time", example=0.)
     errorMessage: str = Field(default=None, description="task running error message if exists", example="xxx")
     output: Optional[dict] = Field(default=None, description="task out put", example={})
-
-
-class TaskStatus(BaseModel):
-    id: str = Field(..., description="task id", example="xxx")
-    name: str = Field(..., description="task name", example="xxx")
-    status: Literal['success', 'failedAndContinue', 'pending', 'skip', 'failedNotContinue'] = Field(
-        ..., description="task status"
-    )
-    errorMessage: Optional[str] = Field(default=None, description="error message if exists", example="xxx")
+    retryTime: int = Field(default=0, description="任务重试次数", example=0)
+    startTime: Optional[str] = Field(default=None, description="开始时间", example="2022-12-14 00:00:00")
+    endTime: Optional[str] = Field(default=None, description="开始时间", example="2022-12-14 00:00:00")
 
 
 class TasksRunningStatusPayload(BaseModel):
-    taskStatus: List[TaskStatus] = Field(default=None, description="task status", example=None)
+    taskStatus: List[dict] = Field(default=None, description="task status", example=None)
 
 
 class TasksRunningRequestInfo(BaseModel):

@@ -3,9 +3,12 @@ import asyncio
 import traceback
 
 from src.main.utils.logger import logger
+from aiokafka.cluster import ClusterMetadata
 from typing import Type, List, Optional, Any, Dict
 from src.main.streamActuator.config import Settings
+from src.main.utils.time_utils import get_now_string
 from src.main.streamActuator.model import Task, Connection
+from src.main.utils.kafka_utils import fetch_kafka_metadata
 from src.main.utils.data_process_utils import validate_model
 from src.main.streamActuator.exception import StreamActuatorException
 from src.main.streamActuator.base.application import Application as BaseApplication
@@ -19,6 +22,8 @@ from src.main.streamActuator.scheduler.model import ExecutionParameters, ToBeExe
 
 
 class Application(BaseApplication):
+    partition_info: Dict[str, List[int]] = {}
+
     def __init__(self, settings: Type[Settings], parameters: ExecutionParameters):
         super().__init__(settings)
         self.parameters = parameters
@@ -33,6 +38,23 @@ class Application(BaseApplication):
         self.tasks: Dict[str, asyncio.Task] = {}
         self.queue = recorder_worker_app.queue
         self.execution_time: Optional[float] = None
+        self.tasks_running_partition: Optional[int] = None
+        self.tasks_run_start_time: Optional[str] = None
+        self.tasks_run_end_time: Optional[str] = None
+
+    async def select_partition(self, topic: str, *, metadata: Optional[ClusterMetadata] = None) -> int:
+        if metadata is None:
+            metadata = await fetch_kafka_metadata(self.settings.kafka_server)
+        partitions = metadata.partitions_for_topic(topic)
+        if topic not in self.partition_info:
+            self.partition_info[topic] = []
+        for candidate_partition in partitions:
+            if candidate_partition not in self.partition_info[topic]:
+                self.partition_info[topic].append(candidate_partition)
+                return candidate_partition
+        self.partition_info[topic] = []
+        result = await self.select_partition(topic, metadata=metadata)
+        return result
 
     @property
     def running_status(self):
@@ -51,13 +73,18 @@ class Application(BaseApplication):
             "statusPayload": {"taskStatus": [status.dict() for status in self.parameters.taskStatus]},
             "contextPayload": self.parameters.context
         }
-        self.queue.put_nowait({"type": "saveTasksRunning", "message": message})
+        self.queue.put_nowait({
+            "type": "saveTasksRunning", "message": message, "messageConfig": {"partition": self.tasks_running_partition}
+        })
 
     def remove_tasks_running(self):
         if not self.parameters.record.require:
             return
         message = {"id": self.parameters.record.tasksRunningId}
-        self.queue.put_nowait({"type": "deleteTasksRunning", "message": message})
+        self.queue.put_nowait({
+            "type": "deleteTasksRunning", "message": message,
+            "messageConfig": {"partition": self.tasks_running_partition}
+        })
 
     def get_task_by_task_id(self, task_id: str) -> Task:
         for task in self.parameters.tasks:
@@ -111,24 +138,43 @@ class Application(BaseApplication):
             if task_status.id == task_id:
                 return task_status
 
-    def set_task_status(self, status: str, task: Task, *, error_message: Optional[str] = None):
+    def set_task_status(
+            self, status: str, task: Task, *, error_message: Optional[str] = None, start_time: Optional[str] = None,
+            end_time: Optional[str] = None, retry_time: Optional[int] = None, **kwargs
+    ):
         task_status = self.get_task_status_by_task_id(task.id)
         if task_status is None:
             self.parameters.taskStatus.append(
-                TaskStatus(id=task.id, name=task.name, status=status, errorMessage=error_message)
+                TaskStatus(
+                    id=task.id, name=task.name, status=status, errorMessage=error_message, startTime=start_time,
+                    endTime=end_time, retryTime=retry_time or 0, **kwargs
+                )
             )
         else:
             task_status.status = status
-            task_status.errorMessage = error_message
+            if error_message is not None:
+                task_status.errorMessage = error_message
+            if start_time is not None:
+                task_status.startTime = start_time
+            if end_time is not None:
+                task_status.endTime = end_time
+            if retry_time is not None:
+                task_status.retryTime = retry_time
+            for key, value in kwargs.items():
+                if value is None:
+                    continue
+                if hasattr(task_status, key):
+                    setattr(task_status, key, value)
             validate_model(task_status)
 
     async def execute_task(self, task: Task):
         executor = self.executor_mappings[task.type](task.dict(), self.parameters.context)
         try:
-            self.set_task_status("pending", task)
+            self.set_task_status("pending", task, start_time=get_now_string(), retry_time=executor.retry_time)
             self.record_tasks_running()
             await executor.execute_task()
-            self.set_task_status("success", task)
+            self.set_task_status("success", task, end_time=get_now_string(), retry_time=executor.retry_time)
+            self.parameters.context[task.name] = executor.result
             self.record_tasks_running()
             return
         except StreamActuatorException as e:
@@ -140,9 +186,13 @@ class Application(BaseApplication):
         finally:
             self.parameters.context[task.name] = executor.result
         if not task.payload.parameters.get("continueOnFail"):
-            self.set_task_status("failedNotContinue", task, error_message=error_message)
+            status = "failedNotContinue"
         else:
-            self.set_task_status("failedAndContinue", task, error_message=error_message)
+            status = "failedAndContinue"
+        self.set_task_status(
+            status, task, error_message=error_message, end_time=get_now_string(), retry_time=executor.retry_time
+        )
+        self.record_tasks_running()
 
     @staticmethod
     def handle_condition(source: Any, condition: Condition) -> bool:
@@ -231,10 +281,11 @@ class Application(BaseApplication):
                 "status": self.get_task_status_by_task_id(task_id),
                 "result": self.parameters.context.get(task.name) or {}
             })
-        message, message_template = "", "任务: {} 状态: {} 耗时: {}"
+        message, message_template = "", "任务: {} 状态: {}, 开始时间: {}, 结束时间: {}, 重试次数: {}, 耗时: {}"
         for index, instance in enumerate(result):
             message += message_template.format(
                 instance["task"].name, instance["status"].status if instance["status"] else "无状态",
+                instance["status"].startTime, instance["status"].endTime, instance["status"].retryTime,
                 instance["result"]["executeTime"] if instance["result"].get("executeTime") is not None else "???" + " 秒"
             )
             if instance["status"] and "fail" in instance["status"].status:
@@ -284,9 +335,14 @@ class Application(BaseApplication):
 
     async def schedule_connection(self):
         now = time.time()
+        self.tasks_run_start_time = get_now_string()
+        self.tasks_running_partition = await self.select_partition(
+            self.settings.kafka_monitor_tasks_running_worker_topic
+        )
         self.parameters.context["Start"] = {"value": self.parameters.input}
         await self._schedule_connection()
         self.execution_time = time.time() - now
+        self.tasks_run_end_time = get_now_string()
 
 
 def get_app(

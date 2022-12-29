@@ -6,14 +6,14 @@ import traceback
 from pydoc import importfile
 from pydantic import BaseModel
 from jsonschema import validate
-from typing import Type, Optional, List
 from src.main.utils.logger import logger
+from typing import Type, Optional, List, Tuple
 from pydantic.error_wrappers import ValidationError
-from src.main.streamController.operator.trigger.model import RequestInfo
 from src.main.streamController.exception import StreamControllerException
 from src.main.client.redis.application import application as redis_application
 from src.main.streamController.base.application import Application as BaseApplication
 from src.main.streamController.external.application import application as external_app
+from src.main.streamController.operator.trigger.model import RequestInfo, RestartTasksRunRequestInfo
 
 
 class Application(BaseApplication):
@@ -85,7 +85,9 @@ class Application(BaseApplication):
         last_execution_info = request_info.lastExecutionInfo
         result = await external_app.actuator_app.execute_connection({
             "input": request_info.input, "connection": connection, "tasks": tasks, "record": request_info.record.dict(),
-            "taskStatus": last_execution_info.taskStatus if last_execution_info is not None else None,
+            "taskStatus": [
+                status.dict() for status in last_execution_info.taskStatus
+            ] if last_execution_info is not None else None,
             "context": last_execution_info.context if last_execution_info is not None else None
         })
         actuator_consuming = time.time() - now
@@ -104,3 +106,34 @@ class Application(BaseApplication):
         actuator_result = result["actuatorResult"]
         logger.info("执行完毕, 共耗时 {}秒".format(consuming_time))
         return {"result": {"timeCost": time_cost, "actuatorResult": actuator_result}}
+
+    async def trigger_connection_asynchronous(self, request_info: RequestInfo):
+        await self.is_trigger_valid(request_info)
+        asyncio.create_task(self._trigger_connection(request_info))
+        return {"result": None}
+
+    @staticmethod
+    async def get_tasks_run_and_input_by_run_id(run_id: str) -> Tuple[dict, dict]:
+        tasks_run_entity = await external_app.monitor_app.get_tasks_run_by_run_id(run_id)
+        if tasks_run_entity is None:
+            raise StreamControllerException("tasks run: {} 不存在".format(run_id), error_code=404)
+        tasks_run_input_entity = await external_app.monitor_app.get_tasks_run_input_by_tasks_run_id(run_id)
+        if tasks_run_input_entity is None:
+            raise StreamControllerException("tasks run: {} 不存在 input".format(run_id), error_code=404)
+        return tasks_run_entity, tasks_run_input_entity
+
+    async def _restart_tasks_run(self, request_info: RestartTasksRunRequestInfo):
+        tasks_run_entity, tasks_run_input_entity = await self.get_tasks_run_and_input_by_run_id(request_info.tasksRunId)
+        trigger_request_info = RequestInfo(
+            input=tasks_run_input_entity["input"], connectionId=tasks_run_entity["connectionId"],
+            record=request_info.record, asynchronous=request_info.asynchronous
+        )
+        if trigger_request_info.asynchronous:
+            result = await self.trigger_connection_asynchronous(trigger_request_info)
+        else:
+            result = await self.trigger_connection(trigger_request_info)
+        return result
+
+    async def restart_tasks_run(self, request_info: RestartTasksRunRequestInfo):
+        result = await self._restart_tasks_run(request_info)
+        return result
